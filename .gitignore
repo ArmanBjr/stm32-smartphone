@@ -1,0 +1,45 @@
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+*.code-workspace
+
+# --- Eclipse / CubeIDE workspace junk ---
+.metadata/
+RemoteSystemsTempFiles/
+
+# --- Build outputs (rebuild in CubeIDE) ---
+SmartPhone_STM32F303/Debug/
+SmartPhone_STM32F303/Release/
+**/Debug/
+**/Release/
+*.o
+*.d
+*.su
+*.cyclo
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.lnk
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.env
+host_tools/.env
+.pytest_cache/
+.mypy_cache/
+
+# --- Misc ---
+*.log
+*.tmp
+.cache/

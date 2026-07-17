@@ -1,0 +1,18 @@
+# Sample melody for song upload (web UI or legacy). Lines are freqHz,ms — rest = 0 Hz.
+# In the web UI: Song upload → choose this file → Translate / Upload to phone.
+# Max notes on device: 80 (STORAGE_SONG_MAX_NOTES).
+262,300
+262,300
+392,300
+392,300
+440,300
+440,300
+392,600
+0,150
+349,300
+349,300
+330,300
+330,300
+294,300
+294,300
+262,600
