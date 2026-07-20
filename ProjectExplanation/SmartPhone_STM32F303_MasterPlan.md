@@ -2212,6 +2212,36 @@ parses all `[LDR] …day/night` log lines to live-switch the web theme (dark ↔
 Expect a one-time flash blob wipe on first boot after that firmware change (payload size
 mismatch → `storage_zero_init()`).
 
+### 9.13 Phase 10 implementation notes (hardening + polish)
+
+**Shipped:**
+- **IWDG** — already kicked from `ui_task` / per-row LCD render (unchanged).
+- **Event drop counter** — `Event_DroppedCount()` + `[EVT] queue full…` (unchanged).
+- **`Serial_TxDroppedCount()`** — counts bytes silently dropped when the TX ring is full
+  (no per-drop LOG; would worsen overflow).
+- **`/health`** (`health.c` / `cmdparse.c`, innovation I9) — logs:
+  ```
+  [HEALTH] uptime=Ns drops_evt=A drops_tx=B
+  [HEALTH] hwm ui=X app=Y storage=Z (words free)
+  ```
+  Task handles registered once after `osThreadNew` in `main.c`.
+- **CGRAM audit** — screen→bank→slots matrix documented in `cgram.h` header
+  (Logo 2, Menu day/night 8, Music 3, PvZ 8; all ≤ 8).
+- **Log format** — module tags (`[PHONE]`, `[MUSIC]`, …) already in place; a few human
+  cmdparse lines tagged `[CMD]`. Protocol `OK` / `ERR unknown/invalid:` / `SMS_SEND|`
+  left unchanged for the host bridge.
+
+**`.ioc` / task stack note (intentional, do not CubeMX-regenerate just for this):**
+- CubeMX `.ioc` may still list defaultTask stack as 128 words; runtime
+  `defaultTask_attributes` in `main.c` uses **384 words** (UI). App (1024) and
+  storage (256) tasks are created manually in USER CODE and are absent from the `.ioc`.
+
+**Packaging:** course zip = `Core/` + `.ioc`; exclude `Debug/`, `.metadata/`, `.env`.
+Filename `Name_StudentNumber_S#_T#.zip` is filled in by the student at submit time.
+
+**Hardware check:** `/start` then `/health` → three HWM numbers + counters; normal use
+must not IWDG-reset; Menu LDR day/night icons still swap.
+
 ---
 
 *End of source-of-truth plan. Any deviation during implementation must be written back

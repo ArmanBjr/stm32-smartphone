@@ -13,6 +13,14 @@
  *        actually issues createChar() HD44780 writes, so it may ONLY be
  *        called from ui_task's loop, matching the plan's own
  *        "ui_render_dirty(); cgram_apply(); IWDG kick" line exactly.
+ *
+ *        Phase 10 CGRAM audit (screen → bank → slots used / 8):
+ *          Boot logo     → BANK_LOGO            → 2 (L/R)
+ *          Menu (day)    → BANK_MENU_ICONS_DAY  → 8 (Note…Piano)
+ *          Menu (night)  → BANK_MENU_ICONS_NIGHT→ 8 (same layout)
+ *          Music         → BANK_MUSIC           → 3 (mute/low/high)
+ *          PvZ           → BANK_PVZ             → 8 (plants/zombies/…)
+ *        Note/Contact/Settings/Info/SMS/Lock/Piano reuse Menu or no CGRAM.
  */
 #ifndef CGRAM_H
 #define CGRAM_H

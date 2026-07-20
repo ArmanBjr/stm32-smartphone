@@ -61,6 +61,7 @@ async def status() -> Dict[str, Any]:
         "port": hub.port,
         "piano_armed": hub.piano_armed,
         "day_night": hub.day_night,
+        "health": hub.health,
         "max_song_notes": MAX_SONG_NOTES,
         "piano_keys": PIANO_KEYS,
         "ports": hub.list_ports(),
@@ -117,6 +118,15 @@ async def phone_reset() -> Dict[str, str]:
 @app.post("/api/phone/time")
 async def phone_time() -> Dict[str, str]:
     hub.push_time_once()
+    return {"ok": "1"}
+
+
+@app.post("/api/phone/health")
+async def phone_health() -> Dict[str, str]:
+    try:
+        hub.query_line("/health")
+    except Exception as exc:
+        raise HTTPException(409, str(exc)) from exc
     return {"ok": "1"}
 
 

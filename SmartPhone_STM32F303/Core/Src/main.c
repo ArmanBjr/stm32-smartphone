@@ -38,6 +38,7 @@
 #include "storage.h"
 #include "rtc_time.h"
 #include "leds.h"
+#include "health.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -282,6 +283,9 @@ int main(void)
    * Created after appTask; ordering doesn't matter for correctness since
    * Storage_WaitAndSave() just blocks until the first save request. */
   storageTaskHandle = osThreadNew(StartStorageTask, NULL, &storageTask_attributes);
+
+  /* Phase 10: register handles for /health stack high-water marks. */
+  Health_RegisterTasks(defaultTaskHandle, appTaskHandle, storageTaskHandle);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_THREADS_CREATE_CHECK */

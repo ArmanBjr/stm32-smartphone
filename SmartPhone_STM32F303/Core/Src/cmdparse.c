@@ -10,6 +10,7 @@
 #include "rtc_time.h"
 #include "buzzer.h"
 #include "analog.h"
+#include "health.h"
 #include "app_config.h"
 #include "events.h"
 #include "serial.h"
@@ -115,7 +116,7 @@ static void handle_setting(const char *line, const char *body)
 {
   const StorageSettings *ro = Storage_GetSettings();
   if (!ro->uart_settings_enable) {
-    LOG("ERR setting rejected (UART settings OFF): %s", line);
+    LOG("[CMD] ERR setting rejected (UART settings OFF): %s", line);
     return;
   }
 
@@ -172,7 +173,7 @@ static void songup_abort(const char *why)
   s_songup.active = 0u;
   s_songup.expected = 0u;
   s_songup.received = 0u;
-  LOG("ERR songup aborted: %s", why);
+  LOG("[CMD] ERR songup aborted: %s", why);
 }
 
 /** Phase 9 (plan section 5.5): `/songup-{name}-{count}` then `count` lines
@@ -329,6 +330,12 @@ void Cmdparse_HandleLine(const char *line)
 
   if (strcmp(line, "/lock") == 0) {
     Phone_Lock();
+    return;
+  }
+
+  /* Phase 10 / I9: uptime, stack HWM, event + UART TX drop counters. */
+  if (strcmp(line, "/health") == 0) {
+    Health_LogReport();
     return;
   }
 

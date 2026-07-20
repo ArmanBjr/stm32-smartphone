@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import collections
+import re
 import threading
 import time
-from typing import Callable, Deque, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Deque, Dict, Iterable, List, Optional, Tuple
 
 try:
     import serial
@@ -45,6 +46,15 @@ class SerialHub:
         # LDR day/night as reported by MCU [LDR] log lines; unknown until
         # the first sample after /start.
         self._day_night = "unknown"
+        self._health: Dict[str, Any] = {
+            "uptime_s": None,
+            "drops_evt": None,
+            "drops_tx": None,
+            "hwm_ui": None,
+            "hwm_app": None,
+            "hwm_storage": None,
+            "updated_at": None,
+        }
 
     # ---- connection -------------------------------------------------
 
@@ -68,6 +78,12 @@ class SerialHub:
     def day_night(self) -> str:
         """'day' | 'night' | 'unknown' — from MCU [LDR] log lines."""
         return self._day_night
+
+    @property
+    def health(self) -> Dict[str, Any]:
+        """Last complete/partial `/health` report received from the MCU."""
+        with self._lock:
+            return dict(self._health)
 
     def connect(self, port: str, baud: int = BAUD) -> None:
         self.cancel_busy_work()
@@ -94,8 +110,10 @@ class SerialHub:
         self.cancel_busy_work()
         self._rx_stop.set()
         self._piano_armed.clear()
-        self._day_night = "unknown"
         with self._lock:
+            self._day_night = "unknown"
+            for key in self._health:
+                self._health[key] = None
             t = self._rx_thread
             ser = self._ser
             self._rx_thread = None
@@ -150,6 +168,15 @@ class SerialHub:
         """Cancel any song upload first (new UI action wins), then TX one line."""
         self.cancel_busy_work()
         self._write_line(line, quiet=quiet)
+
+    def query_line(self, line: str) -> None:
+        """Send a read-only query without cancelling/interleaving a song upload."""
+        if not self._job_lock.acquire(blocking=False):
+            raise RuntimeError("song upload in progress; retry health afterward")
+        try:
+            self._write_line(line)
+        finally:
+            self._job_lock.release()
 
     def _write_line(self, line: str, *, quiet: bool = False) -> None:
         payload = (line.rstrip("\r\n") + "\n").encode("utf-8", errors="replace")
@@ -286,6 +313,7 @@ class SerialHub:
         # During song upload, MCU ACKs are useful; note-echo ERRs are noisy —
         # still show them but listeners already drop when SSE is full.
         self._emit(f">> {line}")
+        self._handle_health_line(line)
         if "[LDR]" in line:
             # analog.c: "[LDR] initial state: day|night", "[LDR] day->night",
             # "[LDR] night->day" — the mode is always the trailing word.
@@ -305,6 +333,33 @@ class SerialHub:
             self._handle_sms_send(line)
         elif line.startswith("SMS_RESULT|"):
             self._record_sms_result(line)
+
+    def _handle_health_line(self, line: str) -> None:
+        summary = re.search(
+            r"\[HEALTH\]\s+uptime=(\d+)s\s+drops_evt=(\d+)\s+drops_tx=(\d+)",
+            line,
+        )
+        stacks = re.search(
+            r"\[HEALTH\]\s+hwm\s+ui=(\d+)\s+app=(\d+)\s+storage=(\d+)",
+            line,
+        )
+        if summary is None and stacks is None:
+            return
+
+        with self._lock:
+            if summary is not None:
+                self._health.update(
+                    uptime_s=int(summary.group(1)),
+                    drops_evt=int(summary.group(2)),
+                    drops_tx=int(summary.group(3)),
+                )
+            if stacks is not None:
+                self._health.update(
+                    hwm_ui=int(stacks.group(1)),
+                    hwm_app=int(stacks.group(2)),
+                    hwm_storage=int(stacks.group(3)),
+                )
+            self._health["updated_at"] = time.strftime("%H:%M:%S")
 
     def _set_day_night(self, mode: str) -> None:
         if mode != self._day_night:

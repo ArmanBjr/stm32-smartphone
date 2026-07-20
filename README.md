@@ -15,6 +15,7 @@ Embedded “smartphone” on an **STM32F303 Discovery** board — FreeRTOS firmw
 | **RTOS** | FreeRTOS (CMSIS-RTOS v2) — interrupt-driven drivers, LCD render task |
 | **PC bridge** | FastAPI web UI: connect COM port, start/lock/reset, time sync, piano keyboard, MP3→notes song upload, SMS history, live log (SSE) |
 | **Bonus** | RTC time sync, live piano (`/pn-` / `/pf`), custom song flash slots (2 × 80 notes) |
+| **Hardening** | IWDG, event/TX drop counters, `/health` (uptime + stack high-water marks) |
 
 ---
 
@@ -47,6 +48,7 @@ Useful host commands the firmware understands (among others):
 /lock                   lock screen
 /reset                  soft reset
 /time-{unix_epoch}      one-shot RTC sync
+/health                 uptime, stack HWM, event/TX drop counters
 /mode                   reply [LDR] state: day|night
 /piano-on /piano-off
 /pn-{freq}  /pf         live note on / off (ISR fast-path)
@@ -55,6 +57,20 @@ Useful host commands the firmware understands (among others):
 ```
 
 Full protocol and architecture: `ProjectExplanation/SmartPhone_STM32F303_MasterPlan.md`.
+
+---
+
+## Course submission packaging
+
+Zip for the course usually wants **`Core/`** plus the **`.ioc`** (see PDF page 1). Suggested contents:
+
+```text
+Name_StudentNumber_S#_T#.zip
+  Core/                         (Inc + Src + Startup)
+  SmartPhone_STM32F303.ioc
+```
+
+Exclude: `Debug/`, `Release/`, `.metadata/`, `host_tools/.env`, Python `venv/`. Rename the zip with your real student identifiers when submitting.
 
 ---
 
@@ -112,7 +128,7 @@ Pin map is documented in `PinAssigment/PinAssignment.md` and the master plan §1
 
 ## Status
 
-Phases through **9** (time sync, live piano, song upload) plus the browser host console are implemented. **Phase 10+** (remaining plan items) are next.
+Phases **0–11** are implemented: base phone apps, PvZ, PC bonuses (time / piano / song upload), SMS bridge, browser host console, and Phase 10 hardening (`/health`, drop counters, IWDG). Optional innovation items (I1–I12 beyond I9) remain available if more bonus marks are needed.
 
 ---
 

@@ -22,6 +22,7 @@ static volatile uint16_t tx_head;      /* next free write index */
 static volatile uint16_t tx_tail;      /* next byte to send */
 static volatile uint8_t  tx_busy;
 static volatile uint16_t tx_inflight;  /* length of the chunk currently in HAL_UART_Transmit_IT */
+static volatile uint32_t s_tx_dropped; /* Phase 10: bytes not queued (ring full) */
 
 /* RX line assembly (plan section 5.5). Two ping-pong buffers so the ISR
  * can keep filling the *next* line while app_task/cmdparse.c is still
@@ -53,6 +54,7 @@ void Serial_Init(UART_HandleTypeDef *huart)
   tx_tail = 0;
   tx_busy = 0;
   tx_inflight = 0;
+  s_tx_dropped = 0;
 }
 
 void Serial_Send(const char *str)
@@ -65,7 +67,10 @@ void Serial_Send(const char *str)
   for (size_t i = 0; i < len; i++) {
     uint16_t next = (uint16_t)((tx_head + 1u) % TX_RING_SIZE);
     if (next == tx_tail) {
-      break; /* ring full: drop tail of message rather than block (never block) */
+      /* ring full: drop remainder rather than block (never block). Count
+       * every discarded byte for /health — do not LOG here. */
+      s_tx_dropped += (uint32_t)(len - i);
+      break;
     }
     tx_ring[tx_head] = (uint8_t)str[i];
     tx_head = next;
@@ -74,6 +79,11 @@ void Serial_Send(const char *str)
   __disable_irq();
   tx_kick();
   __enable_irq();
+}
+
+uint32_t Serial_TxDroppedCount(void)
+{
+  return s_tx_dropped;
 }
 
 void LOG(const char *fmt, ...)

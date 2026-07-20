@@ -51,6 +51,25 @@
     </section>
 
     <section class="panel">
+      <div class="section-head">
+        <div>
+          <h2>System health</h2>
+          <p class="hint">Live MCU hardening telemetry. Stack HWM is unused stack space in FreeRTOS words.</p>
+        </div>
+        <button type="button" class="btn ghost" id="btnHealthRefresh">Refresh</button>
+      </div>
+      <div class="health-grid">
+        <div class="health-stat"><span>Uptime</span><strong id="healthUptime">—</strong></div>
+        <div class="health-stat"><span>Event drops</span><strong id="healthEventDrops">—</strong></div>
+        <div class="health-stat"><span>TX byte drops</span><strong id="healthTxDrops">—</strong></div>
+        <div class="health-stat"><span>UI stack HWM</span><strong id="healthUiHwm">—</strong></div>
+        <div class="health-stat"><span>App stack HWM</span><strong id="healthAppHwm">—</strong></div>
+        <div class="health-stat"><span>Storage stack HWM</span><strong id="healthStorageHwm">—</strong></div>
+      </div>
+      <p class="health-updated" id="healthUpdated">Waiting for a health report.</p>
+    </section>
+
+    <section class="panel">
       <h2>Live piano</h2>
       <p class="hint">Open Piano on the board or press Piano on — then click keys (or use board ↔ PC arm).</p>
       <div class="btn-row">

@@ -13,7 +13,8 @@ Opens **http://127.0.0.1:8765/** — buttons for `/start`, lock, reset, time syn
 live piano, song upload (`.txt` notes or `.mp3`/`.wav` via pitch translator), and SMS.
 The page theme follows the board's LDR: covering the sensor (night) switches the UI
 to the dark palette, light (day) switches to the sunlit one; a header pill shows the
-current mode.
+current mode. The System health panel sends `/health` and updates live with MCU
+uptime, event/TX drop counters, and UI/app/storage stack high-water marks.
 
 - Close Termite first (one COM port only).
 - After uploading a song, play it in the phone **Music** app (tracks after the built-ins).

@@ -36,4 +36,8 @@ void LOG(const char *fmt, ...);
  *  subsequent byte, so this is a one-time kickoff, not a poll. */
 void Serial_StartRx(void);
 
+/** Phase 10: bytes silently dropped because the TX ring was full.
+ *  Reported by `/health`; no per-drop LOG (that would worsen overflow). */
+uint32_t Serial_TxDroppedCount(void);
+
 #endif /* SERIAL_H */

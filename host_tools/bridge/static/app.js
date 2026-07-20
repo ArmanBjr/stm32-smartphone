@@ -82,6 +82,60 @@ function setDayNight(mode) {
   }
 }
 
+function formatUptime(seconds) {
+  if (seconds == null) return "—";
+  const s = Number(seconds);
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  return hours > 0
+    ? `${hours}h ${minutes}m ${secs}s`
+    : `${minutes}m ${secs}s`;
+}
+
+function setHealth(health = {}) {
+  const value = (v, suffix = "") => (v == null ? "—" : `${v}${suffix}`);
+  $("#healthUptime").textContent = formatUptime(health.uptime_s);
+  $("#healthEventDrops").textContent = value(health.drops_evt);
+  $("#healthTxDrops").textContent = value(health.drops_tx);
+  $("#healthUiHwm").textContent = value(health.hwm_ui, " words");
+  $("#healthAppHwm").textContent = value(health.hwm_app, " words");
+  $("#healthStorageHwm").textContent = value(health.hwm_storage, " words");
+  $("#healthUpdated").textContent = health.updated_at
+    ? `Last report: ${health.updated_at}`
+    : "Waiting for a health report.";
+}
+
+function applyHealthLine(line) {
+  const stamp = () => {
+    $("#healthUpdated").textContent =
+      `Last report: ${new Date().toLocaleTimeString()}`;
+  };
+  let match = line.match(
+    /\[HEALTH\]\s+uptime=(\d+)s\s+drops_evt=(\d+)\s+drops_tx=(\d+)/
+  );
+  if (match) {
+    $("#healthUptime").textContent = formatUptime(Number(match[1]));
+    $("#healthEventDrops").textContent = match[2];
+    $("#healthTxDrops").textContent = match[3];
+    stamp();
+    return;
+  }
+  match = line.match(
+    /\[HEALTH\]\s+hwm\s+ui=(\d+)\s+app=(\d+)\s+storage=(\d+)/
+  );
+  if (match) {
+    $("#healthUiHwm").textContent = `${match[1]} words`;
+    $("#healthAppHwm").textContent = `${match[2]} words`;
+    $("#healthStorageHwm").textContent = `${match[3]} words`;
+    stamp();
+  }
+}
+
+async function requestHealth() {
+  await api("/api/phone/health", { method: "POST" });
+}
+
 async function refreshSmsHistory() {
   try {
     const data = await api("/api/sms/history");
@@ -110,6 +164,7 @@ async function refreshStatus() {
   setConnected(s.connected, s.port);
   setPianoArmed(s.piano_armed);
   setDayNight(s.day_night || "unknown");
+  setHealth(s.health || {});
   $("#maxNotes").textContent = String(s.max_song_notes || 80);
   pianoKeysMap = s.piano_keys || {};
   const dl = $("#portList");
@@ -180,6 +235,7 @@ function connectEvents() {
   es.onmessage = (ev) => {
     const line = ev.data || "";
     logLine(line);
+    applyHealthLine(line);
     if (line.includes("[piano] ARMED") || line.includes("[PIANO] enter")) {
       setPianoArmed(true);
     }
@@ -193,6 +249,7 @@ function connectEvents() {
       setConnected(false, "");
       setPianoArmed(false);
       setDayNight("unknown");
+      setHealth({});
     }
     if (line.startsWith("[mode] ")) {
       setDayNight(line.slice(7).trim());
@@ -243,6 +300,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!port) throw new Error("enter COM port");
         await api("/api/connect", { method: "POST", body: { port } });
         await refreshStatus();
+        await requestHealth();
       });
     } catch (e) {
       logLine(`[ui] ${e.message}`);
@@ -318,6 +376,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   $("#btnSmsRefresh").onclick = () => refreshSmsHistory();
+
+  $("#btnHealthRefresh").onclick = () =>
+    requestHealth().catch((e) => logLine(`[ui] health: ${e.message}`));
 
   async function sendSetting(name, value) {
     const line = `/setting-${name}-${value}`;
