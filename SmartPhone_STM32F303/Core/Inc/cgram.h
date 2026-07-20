@@ -15,10 +15,10 @@
  *        "ui_render_dirty(); cgram_apply(); IWDG kick" line exactly.
  *
  *        Phase 10 CGRAM audit (screen → bank → slots used / 8):
- *          Boot logo     → BANK_LOGO            → 2 (L/R)
+ *          Boot logo     → BANK_LOGO            → 8 (4 frames × L/R)
  *          Menu (day)    → BANK_MENU_ICONS_DAY  → 8 (Note…Piano)
  *          Menu (night)  → BANK_MENU_ICONS_NIGHT→ 8 (same layout)
- *          Music         → BANK_MUSIC           → 3 (mute/low/high)
+ *          Music         → BANK_MUSIC           → 8 (mute/low/high + 5 EQ bars)
  *          PvZ           → BANK_PVZ             → 8 (plants/zombies/…)
  *        Note/Contact/Settings/Info/SMS/Lock/Piano reuse Menu or no CGRAM.
  */
@@ -49,6 +49,9 @@ typedef enum {
  * the right bank before printing these. */
 #define CGRAM_LOGO_L        0U
 #define CGRAM_LOGO_R        1U
+/* Innovation I12: frames 0..3 use slots (2*f)/(2*f+1). Frame 0 aliases
+ * CGRAM_LOGO_L/R above. */
+#define CGRAM_LOGO_FRAMES   4U
 #define CGRAM_ICON_NOTE     0U
 #define CGRAM_ICON_CONTACT  1U
 #define CGRAM_ICON_MUSIC    2U
@@ -59,13 +62,17 @@ typedef enum {
 #define CGRAM_ICON_PIANO    7U /* Phase 9 (plan section 6): 8th and LAST menu
                                  * glyph -- fills the CGRAM 8-glyph ceiling
                                  * exactly, no slots remain after this one. */
-/* BANK_MUSIC (Phase 5, plan section 3's "3-state volume icon"): only 3 of
- * the 8 glyph slots are used, deliberately, to stay well under the 8-glyph
- * ceiling (plan risk register item 2) alongside the built-in (non-CGRAM)
- * 0xFF block char the progress bar uses instead of a 4th custom glyph. */
+/* BANK_MUSIC (Phase 5 + Innovation I8): slots 0-2 volume icons; slots 3-7
+ * equalizer bar heights (0..4). Progress bar still uses built-in 0xFF. */
 #define CGRAM_ICON_VOL_MUTE 0U
 #define CGRAM_ICON_VOL_LOW  1U
 #define CGRAM_ICON_VOL_HIGH 2U
+#define CGRAM_ICON_EQ_0     3U
+#define CGRAM_ICON_EQ_1     4U
+#define CGRAM_ICON_EQ_2     5U
+#define CGRAM_ICON_EQ_3     6U
+#define CGRAM_ICON_EQ_4     7U
+#define CGRAM_EQ_LEVELS     5U
 
 /* BANK_PVZ (Phase 8, plan section 5.7: "BANK_PVZ (plant day, plant night,
  * zombie, special, heart, bullet)" and section 5.8 bonus 4's tank

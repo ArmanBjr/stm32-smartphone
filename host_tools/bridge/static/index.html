@@ -35,8 +35,8 @@
           <datalist id="portList"></datalist>
         </label>
         <button type="button" class="btn ghost" id="refreshPorts">Refresh</button>
-        <button type="button" class="btn primary" id="btnConnect">Connect</button>
-        <button type="button" class="btn" id="btnDisconnect" disabled>Disconnect</button>
+        <button type="button" class="btn" id="btnConnect" data-choice-group="connection" data-choice-value="connect">Connect</button>
+        <button type="button" class="btn" id="btnDisconnect" data-choice-group="connection" data-choice-value="disconnect" disabled>Disconnect</button>
       </div>
     </section>
 
@@ -47,6 +47,7 @@
         <button type="button" class="btn" data-cmd="lock">Lock</button>
         <button type="button" class="btn warn" data-cmd="reset">Reset</button>
         <button type="button" class="btn accent" data-cmd="time">Sync time</button>
+        <button type="button" class="btn" id="btnShot" title="Dump 20×4 LCD shadow buffer (same as keypad D)">Screenshot</button>
       </div>
     </section>
 
@@ -70,14 +71,37 @@
     </section>
 
     <section class="panel">
+      <h2>LCD screenshot</h2>
+      <p class="hint">Press <strong>Screenshot</strong> above or keypad <strong>D</strong>. CGRAM icons appear as <code>#</code>.</p>
+      <div class="lcd-preview" id="lcdPreview" aria-label="Last LCD screenshot">
+        <div class="lcd-row muted">No screenshot yet — connect and press Screenshot.</div>
+      </div>
+    </section>
+
+    <section class="panel">
       <h2>Live piano</h2>
-      <p class="hint">Open Piano on the board or press Piano on — then click keys (or use board ↔ PC arm).</p>
+      <p class="hint">Press <strong>Piano on</strong> (or open Piano on the board). Choose how you want to play from this page.</p>
       <div class="btn-row">
-        <button type="button" class="btn primary" id="pianoOn">Piano on</button>
-        <button type="button" class="btn" id="pianoOff">Piano off</button>
+        <button type="button" class="btn" id="pianoOn" data-choice-group="piano" data-choice-value="on">Piano on</button>
+        <button type="button" class="btn" id="pianoOff" data-choice-group="piano" data-choice-value="off">Piano off</button>
         <span class="chip" id="pianoChip">disarmed</span>
       </div>
-      <div class="piano" id="pianoKeys"></div>
+
+      <div class="piano-mode-tabs" role="tablist" aria-label="Piano input mode">
+        <button type="button" class="btn tab active" id="pianoTabKeyboard" role="tab" aria-selected="true" data-piano-mode="keyboard">PC keyboard</button>
+        <button type="button" class="btn tab" id="pianoTabScreen" role="tab" aria-selected="false" data-piano-mode="screen">On-screen piano</button>
+      </div>
+
+      <div class="piano-panel" id="pianoKeyboardPanel">
+        <p class="hint piano-hint">Focus this page (not a text field), then play: <kbd>A</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>T</kbd> <kbd>G</kbd> <kbd>Y</kbd> <kbd>H</kbd> <kbd>U</kbd> <kbd>J</kbd> <kbd>K</kbd></p>
+        <div class="kb-layout" id="kbLayout" aria-hidden="true"></div>
+        <p class="piano-status" id="pianoKbStatus">Keyboard idle — arm piano first.</p>
+      </div>
+
+      <div class="piano-panel hidden" id="pianoScreenPanel">
+        <p class="hint piano-hint">Click or tap the keys below (mouse / touch).</p>
+        <div class="piano" id="pianoKeys"></div>
+      </div>
     </section>
 
     <section class="panel">
@@ -98,6 +122,20 @@
         <button type="button" class="btn primary" id="btnUploadSong">Upload to phone</button>
       </div>
       <pre class="preview" id="songPreview">No song loaded.</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Innovations (on device)</h2>
+      <p class="hint">Shipped firmware bundle — test on hardware or via this bridge where noted.</p>
+      <ul class="innov-list">
+        <li><strong>I4 Screenshot</strong> — button above or <code>/shot</code>; preview in LCD panel</li>
+        <li><strong>I3 Sound</strong> — key clicks, boot chirp, error buzz (board keypad)</li>
+        <li><strong>I2 Lock idle</strong> — <code>/lock</code> then leave; clock keeps updating</li>
+        <li><strong>I12 Boot anim</strong> — <code>/start</code> shows 4-frame logo</li>
+        <li><strong>I5 PvZ achievements</strong> — 3 min / 10 kills toasts on game over</li>
+        <li><strong>I8 Music EQ</strong> — animated bars while a track plays</li>
+        <li><strong>I10 Note T9</strong> — type prefix, hold <kbd>6</kbd> on board to accept</li>
+      </ul>
     </section>
 
     <section class="panel">
@@ -125,25 +163,25 @@
       <div class="opt-block">
         <span class="opt-label">UART settings gate</span>
         <div class="btn-row">
-          <button type="button" class="btn primary" data-setting="uartset" data-value="1">On</button>
-          <button type="button" class="btn" data-setting="uartset" data-value="0">Off</button>
+          <button type="button" class="btn" data-setting="uartset" data-choice-group="uartset" data-choice-value="1" data-value="1">On</button>
+          <button type="button" class="btn" data-setting="uartset" data-choice-group="uartset" data-choice-value="0" data-value="0">Off</button>
         </div>
       </div>
 
       <div class="opt-block">
         <span class="opt-label">7-seg clock (Segtime)</span>
         <div class="btn-row">
-          <button type="button" class="btn" data-setting="segtime" data-value="1">On</button>
-          <button type="button" class="btn" data-setting="segtime" data-value="0">Off</button>
+          <button type="button" class="btn" data-setting="segtime" data-choice-group="segtime" data-choice-value="1" data-value="1">On</button>
+          <button type="button" class="btn" data-setting="segtime" data-choice-group="segtime" data-choice-value="0" data-value="0">Off</button>
         </div>
       </div>
 
       <div class="opt-block">
         <span class="opt-label">Menu icon layout</span>
         <div class="btn-row">
-          <button type="button" class="btn" data-setting="icons" data-value="0">8×1 row</button>
-          <button type="button" class="btn" data-setting="icons" data-value="1">4×2 grid</button>
-          <button type="button" class="btn" data-setting="icons" data-value="2">3×3 grid</button>
+          <button type="button" class="btn" data-setting="icons" data-choice-group="icons" data-choice-value="0" data-value="0">8×1 row</button>
+          <button type="button" class="btn" data-setting="icons" data-choice-group="icons" data-choice-value="1" data-value="1">4×2 grid</button>
+          <button type="button" class="btn" data-setting="icons" data-choice-group="icons" data-choice-value="2" data-value="2">3×3 grid</button>
         </div>
       </div>
 
@@ -158,11 +196,11 @@
           <button type="button" class="btn primary" id="btnVolApply">Apply</button>
         </div>
         <div class="btn-row" style="margin-top:0.5rem">
-          <button type="button" class="btn ghost" data-setting="volume" data-value="0">Mute</button>
-          <button type="button" class="btn ghost" data-setting="volume" data-value="25">25%</button>
-          <button type="button" class="btn ghost" data-setting="volume" data-value="50">50%</button>
-          <button type="button" class="btn ghost" data-setting="volume" data-value="75">75%</button>
-          <button type="button" class="btn ghost" data-setting="volume" data-value="100">100%</button>
+          <button type="button" class="btn ghost" data-setting="volume" data-choice-group="volume" data-choice-value="0" data-value="0">Mute</button>
+          <button type="button" class="btn ghost" data-setting="volume" data-choice-group="volume" data-choice-value="25" data-value="25">25%</button>
+          <button type="button" class="btn ghost" data-setting="volume" data-choice-group="volume" data-choice-value="50" data-value="50">50%</button>
+          <button type="button" class="btn ghost" data-setting="volume" data-choice-group="volume" data-choice-value="75" data-value="75">75%</button>
+          <button type="button" class="btn ghost" data-setting="volume" data-choice-group="volume" data-choice-value="100" data-value="100">100%</button>
         </div>
       </div>
 
@@ -176,20 +214,20 @@
           <button type="button" class="btn primary" id="btnLdrApply">Apply</button>
         </div>
         <div class="btn-row" style="margin-top:0.5rem">
-          <button type="button" class="btn ghost" data-setting="ldr" data-value="1500">Darker 1500</button>
-          <button type="button" class="btn ghost" data-setting="ldr" data-value="2200">Default 2200</button>
-          <button type="button" class="btn ghost" data-setting="ldr" data-value="3000">Brighter 3000</button>
+          <button type="button" class="btn ghost" data-setting="ldr" data-choice-group="ldr" data-choice-value="1500" data-value="1500">Darker 1500</button>
+          <button type="button" class="btn ghost" data-setting="ldr" data-choice-group="ldr" data-choice-value="2200" data-value="2200">Default 2200</button>
+          <button type="button" class="btn ghost" data-setting="ldr" data-choice-group="ldr" data-choice-value="3000" data-value="3000">Brighter 3000</button>
         </div>
       </div>
 
       <div class="opt-block">
         <span class="opt-label">Auto-lock idle time</span>
         <div class="btn-row">
-          <button type="button" class="btn" data-setting="autolock" data-value="0">Off</button>
-          <button type="button" class="btn" data-setting="autolock" data-value="30">30 s</button>
-          <button type="button" class="btn" data-setting="autolock" data-value="60">60 s</button>
-          <button type="button" class="btn" data-setting="autolock" data-value="120">2 min</button>
-          <button type="button" class="btn" data-setting="autolock" data-value="300">5 min</button>
+          <button type="button" class="btn" data-setting="autolock" data-choice-group="autolock" data-choice-value="0" data-value="0">Off</button>
+          <button type="button" class="btn" data-setting="autolock" data-choice-group="autolock" data-choice-value="30" data-value="30">30 s</button>
+          <button type="button" class="btn" data-setting="autolock" data-choice-group="autolock" data-choice-value="60" data-value="60">60 s</button>
+          <button type="button" class="btn" data-setting="autolock" data-choice-group="autolock" data-choice-value="120" data-value="120">2 min</button>
+          <button type="button" class="btn" data-setting="autolock" data-choice-group="autolock" data-choice-value="300" data-value="300">5 min</button>
         </div>
       </div>
     </section>

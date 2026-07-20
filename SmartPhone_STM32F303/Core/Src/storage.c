@@ -300,6 +300,29 @@ uint8_t Storage_SetHighscoreIfBetter(uint16_t score, uint16_t survival_s)
   return 1u;
 }
 
+uint8_t Storage_RecordAchievements(uint16_t survival_total_s, uint16_t kills)
+{
+  StorageHighscore *hs = &s_blob.payload.highscore;
+  uint8_t newly = 0u;
+
+  if (survival_total_s > hs->best_survival_total_s) {
+    hs->best_survival_total_s = survival_total_s;
+  }
+  if (kills > hs->best_kills) {
+    hs->best_kills = kills;
+  }
+
+  if (survival_total_s >= 180u && (hs->achievements & 0x01u) == 0u) {
+    hs->achievements |= 0x01u;
+    newly |= 0x01u;
+  }
+  if (kills >= 10u && (hs->achievements & 0x02u) == 0u) {
+    hs->achievements |= 0x02u;
+    newly |= 0x02u;
+  }
+  return newly;
+}
+
 uint8_t Storage_GetSongCount(void)
 {
   uint8_t n = 0u;

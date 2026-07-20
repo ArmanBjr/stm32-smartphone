@@ -91,6 +91,7 @@ static PvzPlantType s_place_type = PVZ_PLANT_DAY;
 static uint8_t s_settings_sel = 0u;
 
 static uint8_t s_game_over_is_new_best = 0u;
+static uint8_t s_game_over_new_ach = 0u; /* Innovation I5: newly unlocked bits */
 
 static uint16_t s_last_zombies_spawned = 0u;
 
@@ -172,8 +173,11 @@ static void pvz_on_game_over(void)
 {
   s_game_active = 0u;
   Leds_Set(LED_GREEN, 0u);
-  s_game_over_is_new_best = Storage_SetHighscoreIfBetter(s_state.score, s_state.survival_s);
-  if (s_game_over_is_new_best) {
+  s_game_over_is_new_best = Storage_SetHighscoreIfBetter(s_state.score,
+                                                         s_state.survival_total_s);
+  s_game_over_new_ach = Storage_RecordAchievements(s_state.survival_total_s,
+                                                   s_state.kills);
+  if (s_game_over_is_new_best || s_game_over_new_ach != 0u) {
     Storage_RequestSave(); /* plan section 5.6 save trigger: "new high score" */
   }
   /* Plan section 5.8: "game over jingle" -- multi-note Alert melody, not
@@ -181,8 +185,10 @@ static void pvz_on_game_over(void)
   Buzzer_PlayMelody(PVZ_GAMEOVER_MELODY_IDX);
   s_screen = PVZ_SCREEN_GAME_OVER;
   Seg7_SetMode(SEG_OFF);
-  LOG("[PVZ] game over: score=%u survival=%u best=%u",
-      (unsigned)s_state.score, (unsigned)s_state.survival_s, (unsigned)s_game_over_is_new_best);
+  LOG("[PVZ] game over: score=%u survival=%u kills=%u best=%u ach=0x%02X",
+      (unsigned)s_state.score, (unsigned)s_state.survival_total_s,
+      (unsigned)s_state.kills, (unsigned)s_game_over_is_new_best,
+      (unsigned)s_game_over_new_ach);
 }
 
 static void pvz_on_enter(void)
@@ -559,9 +565,20 @@ static void pvz_render_game_over(void)
   char line[UI_COLS + 1];
   snprintf(line, sizeof(line), "Score: %u", (unsigned)s_state.score);
   UI_Print(1, 2, line);
-  snprintf(line, sizeof(line), "Survived: %us", (unsigned)s_state.survival_s);
+  snprintf(line, sizeof(line), "Survived: %us", (unsigned)s_state.survival_total_s);
   UI_Print(2, 2, line);
-  UI_Print(3, 1, s_game_over_is_new_best ? "New high score! SEL" : "SEL to continue");
+  /* Innovation I5: one-line achievement toast when newly unlocked. */
+  if (s_game_over_new_ach != 0u) {
+    if ((s_game_over_new_ach & 0x03u) == 0x03u) {
+      UI_Print(3, 0, "Ach:3min+10kills");
+    } else if (s_game_over_new_ach & 0x01u) {
+      UI_Print(3, 1, "Ach: 3min!");
+    } else {
+      UI_Print(3, 0, "Ach: 10 kills!");
+    }
+  } else {
+    UI_Print(3, 1, s_game_over_is_new_best ? "New high score! SEL" : "SEL to continue");
+  }
   UI_EndFrame();
 }
 

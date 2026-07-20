@@ -1086,8 +1086,14 @@ void StartAppTask(void *argument)
   for (;;)
   {
     Event ev;
-    if (osMessageQueueGet(eventQueue, &ev, NULL, APP_TASK_TICK_MS) == osOK) {
+    /* Innovation I2: longer wait + __WFI while locked (no STOP/STANDBY —
+     * keypad/UART/IWDG stay alive; ui_task still kicks IWDG every ~30 ms). */
+    uint32_t wait_ms = Phone_IsLocked() ? (uint32_t)LOCK_IDLE_MS
+                                        : (uint32_t)APP_TASK_TICK_MS;
+    if (osMessageQueueGet(eventQueue, &ev, NULL, wait_ms) == osOK) {
       Phone_Dispatch(&ev);
+    } else if (Phone_IsLocked()) {
+      __WFI();
     }
     Phone_Tick(); /* drives blink/animation re-evaluation every tick
                     * regardless of whether an event arrived (see

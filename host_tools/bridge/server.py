@@ -130,6 +130,12 @@ async def phone_health() -> Dict[str, str]:
     return {"ok": "1"}
 
 
+@app.post("/api/phone/shot")
+async def phone_shot() -> Dict[str, str]:
+    hub.send_line("/shot")
+    return {"ok": "1"}
+
+
 @app.post("/api/piano/on")
 async def piano_on() -> Dict[str, str]:
     hub.piano_on()

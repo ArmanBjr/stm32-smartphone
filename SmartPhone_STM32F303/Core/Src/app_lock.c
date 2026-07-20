@@ -19,6 +19,9 @@
  *        field discards KEY_EV_CHAR and only accepts KEY_EV_DIGIT. LockType
  *        is not needed here (there is no sub-field to toggle) so
  *        KEY_EV_LOCKTYPE is simply ignored if it arrives.
+ *
+ *        Innovation I2: dirty-render only when HH:MM:SS or PIN UI changes
+ *        so longer lock idle waits don't rewrite an unchanged framebuffer.
  */
 #include "app.h"
 #include "app_config.h"
@@ -29,6 +32,7 @@
 #include "rtc_time.h"
 #include "phone.h"
 #include "serial.h"
+#include "buzzer.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -41,6 +45,13 @@ static char    s_pin_buf[LOCK_PIN_DIGITS + 1u];
 static uint8_t s_pin_len;
 static uint8_t s_wrong_flash; /* >0: show "Wrong PIN" for a few ticks */
 
+/* Innovation I2: skip UI_BeginFrame/EndFrame when clock + PIN UI unchanged. */
+static char    s_last_clock[9];
+static uint8_t s_last_pin_len;
+static uint8_t s_last_wrong_flash;
+static uint8_t s_last_pin_enabled;
+static uint8_t s_force_dirty;
+
 static void lock_reset_entry(void)
 {
   s_pin_buf[0] = '\0';
@@ -51,6 +62,8 @@ static void lock_on_enter(void)
 {
   lock_reset_entry();
   s_wrong_flash = 0u;
+  s_force_dirty = 1u;
+  s_last_clock[0] = '\0';
   Keypad_SetInputMode(INPUT_MODE_TYPE); /* hold-digit needed for PIN entry;
                                           * harmless no-op for the any-key
                                           * path since any key (CHAR/DIGIT/
@@ -99,16 +112,19 @@ static void lock_on_event(const Event *ev)
         Phone_UnlockToSaved();
       } else {
         LOG("[LOCK] PIN wrong");
+        Buzzer_PlaySFX(BUZZER_SFX_ERROR);
         s_wrong_flash = 1u;
         lock_reset_entry();
       }
     }
+    s_force_dirty = 1u;
     return;
   }
 
   if (kt == KEY_EV_DELETE && s_pin_len > 0u) {
     s_pin_len--;
     s_pin_buf[s_pin_len] = '\0';
+    s_force_dirty = 1u;
   }
   /* KEY_EV_CHAR (multi-tap letters), NAV/SELECT/BACK/LOCKTYPE and shortcuts
    * are all deliberately ignored while pin_enabled -- BACK is additionally
@@ -123,25 +139,35 @@ static void lock_on_tick(void)
     if (s_wrong_flash > (LOCK_WRONG_PIN_FLASH_TICKS)) {
       s_wrong_flash = 0u;
       lock_reset_entry();
+      s_force_dirty = 1u;
     }
   }
 }
 
 static void lock_render(void)
 {
-  UI_BeginFrame();
-  UI_Print(0, 5, "-- Locked --");
-
   char clock_str[9];
   RTC_Time_GetString(clock_str);
+  const StorageSettings *s = Storage_GetSettings();
+  uint8_t wrong_on = (s_wrong_flash > 0u) ? 1u : 0u;
+
+  if (!s_force_dirty
+      && strcmp(clock_str, s_last_clock) == 0
+      && s_pin_len == s_last_pin_len
+      && wrong_on == s_last_wrong_flash
+      && s->pin_enabled == s_last_pin_enabled) {
+    return; /* Innovation I2: unchanged lock UI — skip framebuffer rewrite */
+  }
+
+  UI_BeginFrame();
+  UI_Print(0, 5, "-- Locked --");
   UI_Print(1, 6, clock_str);
   if (!RTC_Time_IsSynced()) {
     UI_Print(2, 2, "(unsynced -- /time)");
   }
 
-  const StorageSettings *s = Storage_GetSettings();
   if (s->pin_enabled) {
-    if (s_wrong_flash > 0u) {
+    if (wrong_on) {
       UI_Print(3, 4, "Wrong PIN");
     } else {
       char dots[LOCK_PIN_DIGITS + 1u];
@@ -158,6 +184,12 @@ static void lock_render(void)
     UI_Print(3, 1, "Press any key...");
   }
   UI_EndFrame();
+
+  memcpy(s_last_clock, clock_str, sizeof(s_last_clock));
+  s_last_pin_len = s_pin_len;
+  s_last_wrong_flash = wrong_on;
+  s_last_pin_enabled = s->pin_enabled;
+  s_force_dirty = 0u;
 }
 
 static void lock_on_suspend(void)

@@ -7,6 +7,7 @@
  *          /start, /reset, /lock, /setting-{NAME}-{VALUE},
  *          /time-{unix_epoch},
  *          /health  (Phase 10 / I9: uptime, stack HWM, drop counters),
+ *          /shot    (I4: dump 20x4 LCD shadow buffer as ASCII),
  *          /mode  (replies `[LDR] state: day|night` -- host web UI theme),
  *          /piano-on, /pn-{freq}, /pf  (pn/pf normally via serial ISR
  *            fast-path; see serial.c),

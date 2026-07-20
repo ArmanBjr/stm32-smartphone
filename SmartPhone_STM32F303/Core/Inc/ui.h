@@ -71,4 +71,11 @@ void UI_EndFrame(void);
  * harness that doesn't have a watchdog). */
 void UI_RenderDirty(void (*on_row_done)(void));
 
+/** app_task-safe snapshot of the logical framebuffer (`s_back`). */
+void UI_CopyFrame(uint8_t dst[UI_ROWS][UI_COLS]);
+
+/** Innovation I4: dump the 20x4 shadow buffer over UART as ASCII
+ *  (`[SHOT]` … `[/SHOT]`). CGRAM codes 0–7 become `'#'`. */
+void UI_DumpShot(void);
+
 #endif /* UI_H */

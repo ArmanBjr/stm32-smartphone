@@ -30,6 +30,7 @@
 #include "keypad.h"
 #include "storage.h"
 #include "serial.h"
+#include "t9_dict.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -46,6 +47,63 @@ static uint8_t    s_edit_field = 0;  /* EDIT: 0=title, 1=body */
 static InputMode  s_edit_mode = INPUT_MODE_TYPE; /* EDIT: cached TYPE/NAV sub-mode, see file comment */
 static TextField  s_tf_title;
 static TextField  s_tf_body;
+static char       s_suggest[16]; /* Innovation I10: T9-lite suggestion */
+
+static TextField *note_active_field(void);
+static void note_update_suggest(void);
+static void note_accept_suggest(void);
+
+static uint8_t note_is_word_char(char c)
+{
+  return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+          (c >= '0' && c <= '9')) ? 1u : 0u;
+}
+
+static void note_update_suggest(void)
+{
+  TextField *tf = note_active_field();
+  uint8_t end = tf->cursor;
+  uint8_t start = end;
+  while (start > 0u && note_is_word_char(tf->buf[start - 1u])) {
+    start--;
+  }
+  uint8_t plen = (uint8_t)(end - start);
+  char prefix[16];
+  if (plen == 0u || plen >= (uint8_t)sizeof(prefix)) {
+    s_suggest[0] = '\0';
+    return;
+  }
+  memcpy(prefix, tf->buf + start, plen);
+  prefix[plen] = '\0';
+  /* Dictionary is lowercase; multi-tap emits lowercase letters. */
+  if (!T9_Suggest(prefix, s_suggest, (uint8_t)sizeof(s_suggest))) {
+    s_suggest[0] = '\0';
+  }
+}
+
+static void note_accept_suggest(void)
+{
+  if (s_suggest[0] == '\0') {
+    return;
+  }
+  TextField *tf = note_active_field();
+  uint8_t end = tf->cursor;
+  uint8_t start = end;
+  while (start > 0u && note_is_word_char(tf->buf[start - 1u])) {
+    start--;
+  }
+  uint8_t plen = (uint8_t)(end - start);
+  for (uint8_t i = 0u; i < plen; i++) {
+    Widgets_TextFieldBackspace(tf);
+  }
+  for (const char *p = s_suggest; *p != '\0'; p++) {
+    if (!Widgets_TextFieldInsert(tf, *p)) {
+      break;
+    }
+  }
+  LOG("[NOTE] T9 accept '%s' (hold-6)", s_suggest);
+  s_suggest[0] = '\0';
+}
 
 static void note_enter_list(void)
 {
@@ -68,8 +126,10 @@ static void note_enter_edit(uint8_t idx)
   s_edit_mode = INPUT_MODE_TYPE; /* plan section 1.2: "editor in letter mode" */
   Widgets_TextFieldBind(&s_tf_title, n->title, (uint8_t)(STORAGE_NOTE_TITLE_LEN - 1u));
   Widgets_TextFieldBind(&s_tf_body, n->body, (uint8_t)(STORAGE_NOTE_BODY_LEN - 1u));
+  s_suggest[0] = '\0';
   s_screen = NOTE_SCREEN_EDIT;
   Keypad_SetInputMode(s_edit_mode);
+  LOG("[NOTE] EDIT: hold-6 accepts T9 suggestion");
 }
 
 static TextField *note_active_field(void)
@@ -202,12 +262,24 @@ static void note_on_event(const Event *ev)
 
   /* EDIT screen, TYPE sub-mode text insertion needs the char payload
    * (ev->b), which note_edit_on_key() doesn't receive -- handled here
-   * directly instead of threading the char through that function. */
+   * directly instead of threading the char through that function.
+   * Innovation I10: hold-6 with a non-empty suggestion accepts it. */
+  if (s_edit_mode == INPUT_MODE_TYPE && kt == KEY_EV_DIGIT
+      && (char)ev->b == '6' && s_suggest[0] != '\0') {
+    note_accept_suggest();
+    return;
+  }
   if (s_edit_mode == INPUT_MODE_TYPE && (kt == KEY_EV_CHAR || kt == KEY_EV_DIGIT)) {
     Widgets_TextFieldInsert(note_active_field(), (char)ev->b);
+    note_update_suggest();
     return;
   }
   note_edit_on_key(kt);
+  if (s_edit_mode == INPUT_MODE_NAV
+      && (kt == KEY_EV_NAV_LEFT || kt == KEY_EV_NAV_RIGHT || kt == KEY_EV_DELETE
+          || kt == KEY_EV_NAV_UP || kt == KEY_EV_NAV_DOWN)) {
+    note_update_suggest();
+  }
 }
 
 static void note_on_tick(void)
@@ -266,6 +338,12 @@ static void note_render_edit(void)
            (unsigned)Storage_GetNoteCount(), (s_edit_mode == INPUT_MODE_TYPE) ? "TYPE" : "NAV");
   UI_Print(0, 0, status);
   note_render_field_row(1, "T:", &s_tf_title, (uint8_t)(s_edit_field == 0u));
+  /* Innovation I10: row 2 shows T9-lite suggestion (hold-6 accepts). */
+  if (s_suggest[0] != '\0') {
+    char hint[UI_COLS + 1];
+    snprintf(hint, sizeof(hint), ">%s", s_suggest);
+    UI_Print(2, 0, hint);
+  }
   note_render_field_row(3, "B:", &s_tf_body, (uint8_t)(s_edit_field == 1u));
   UI_EndFrame();
 }

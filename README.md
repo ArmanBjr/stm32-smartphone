@@ -16,6 +16,7 @@ Embedded “smartphone” on an **STM32F303 Discovery** board — FreeRTOS firmw
 | **PC bridge** | FastAPI web UI: connect COM port, start/lock/reset, time sync, piano keyboard, MP3→notes song upload, SMS history, live log (SSE) |
 | **Bonus** | RTC time sync, live piano (`/pn-` / `/pf`), custom song flash slots (2 × 80 notes) |
 | **Hardening** | IWDG, event/TX drop counters, `/health` (uptime + stack high-water marks) |
+| **Innovations** | Screenshot (`D`/`/shot`), SFX polish, lock idle `__WFI`, animated boot logo, PvZ achievements, Music EQ bars, Note T9-lite (hold-6) |
 
 ---
 
@@ -49,6 +50,7 @@ Useful host commands the firmware understands (among others):
 /reset                  soft reset
 /time-{unix_epoch}      one-shot RTC sync
 /health                 uptime, stack HWM, event/TX drop counters
+/shot                   dump 20×4 LCD shadow buffer as ASCII (also keypad D)
 /mode                   reply [LDR] state: day|night
 /piano-on /piano-off
 /pn-{freq}  /pf         live note on / off (ISR fast-path)
@@ -128,7 +130,7 @@ Pin map is documented in `PinAssigment/PinAssignment.md` and the master plan §1
 
 ## Status
 
-Phases **0–11** are implemented: base phone apps, PvZ, PC bonuses (time / piano / song upload), SMS bridge, browser host console, and Phase 10 hardening (`/health`, drop counters, IWDG). Optional innovation items (I1–I12 beyond I9) remain available if more bonus marks are needed.
+Phases **0–11** are implemented: base phone apps, PvZ, PC bonuses (time / piano / song upload), SMS bridge, browser host console, and Phase 10 hardening (`/health`, drop counters, IWDG). Shipped innovation bundle: **I4, I3, I2, I12, I5, I8, I10** (screenshot, SFX, lock idle WFI, boot anim, PvZ achievements, Music EQ, Note T9-lite). Remaining optional items: I1 Snake, I6 composer.
 
 ---
 

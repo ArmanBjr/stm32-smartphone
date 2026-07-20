@@ -188,11 +188,20 @@ static void music_render(void)
   }
   UI_PutChar(1, (uint8_t)(1u + MUSIC_PROGRESS_BAR_COLS), (uint8_t)']');
 
-  snprintf(line, sizeof(line), "%s Sh:%s Rp:%s",
+  snprintf(line, sizeof(line), "%s S%sR%s",
            Buzzer_IsPlaying() ? ">" : "||",
-           s_shuffle ? "On" : "Off",
-           s_repeat ? "On" : "Off");
+           s_shuffle ? "1" : "0",
+           s_repeat ? "1" : "0");
   UI_Print(2, 0, line);
+
+  /* Innovation I8: animated EQ bars while a track is playing (CGRAM 3-7). */
+  if (Buzzer_IsPlaying()) {
+    uint32_t t = Buzzer_GetElapsedMs() / 80u;
+    for (uint8_t i = 0u; i < (uint8_t)CGRAM_EQ_LEVELS; i++) {
+      uint8_t h = (uint8_t)((t + (uint32_t)i * 3u) % (uint32_t)CGRAM_EQ_LEVELS);
+      UI_PutChar(2, (uint8_t)(8u + i), (uint8_t)(CGRAM_ICON_EQ_0 + h));
+    }
+  }
 
   uint8_t vol = Buzzer_GetVolume();
   uint8_t icon = (vol == 0u) ? (uint8_t)CGRAM_ICON_VOL_MUTE

@@ -71,4 +71,7 @@ void Phone_SwitchApp(const App *app);
  *  change is visible immediately without waiting for the next app switch. */
 void Phone_ApplySeg7Default(void);
 
+/** Innovation I2: 1 while the lock screen is current. */
+uint8_t Phone_IsLocked(void);
+
 #endif /* PHONE_H */

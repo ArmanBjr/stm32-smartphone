@@ -149,6 +149,7 @@ static void bullets_tick(PvzState *st, uint8_t is_night)
     if (hit->hp <= 0) {
       hit->active = 0u;
       st->fx_kills++;
+      st->kills++;
       st->score = (uint16_t)(st->score + PVZ_SCORE_PER_KILL);
       grant_score_bonus_if_due(st, PVZ_SCORE_PER_KILL, is_night);
     }
@@ -372,6 +373,7 @@ void PvzEngine_OnSecondTick(PvzState *st, uint8_t is_night)
     return;
   }
   st->survival_s++;
+  st->survival_total_s++;
   if (st->survival_s >= 60u) {
     st->survival_s = 0u;
     st->score = (uint16_t)(st->score + PVZ_SCORE_PER_MINUTE_WRAP);

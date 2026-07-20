@@ -5,6 +5,13 @@ const $ = (sel) => document.querySelector(sel);
 let translated = null;
 let pianoKeysMap = {};
 let uploadInFlight = null;
+let pianoArmed = false;
+let pianoInputMode = "keyboard"; /* "keyboard" | "screen" */
+const pianoKeysDown = new Set();
+let shotCapture = null;
+
+const PIANO_KEY_ORDER = ["a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j", "k"];
+const PIANO_BLACK_KEYS = new Set(["w", "e", "t", "y", "u"]);
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -43,7 +50,6 @@ async function withCancel(fn) {
 
 function logLine(line) {
   const el = $("#console");
-  // Cap DOM size so the log panel stays responsive
   const maxChars = 120000;
   el.textContent += line + "\n";
   if (el.textContent.length > maxChars) {
@@ -58,12 +64,148 @@ function setConnected(on, port) {
   pill.textContent = on ? `Connected · ${port}` : "Disconnected";
   $("#btnConnect").disabled = on;
   $("#btnDisconnect").disabled = !on;
+  setChoice("connection", on ? "disconnect" : "connect");
+}
+
+/** Highlight the active button in a mutually-exclusive choice group. */
+function setChoice(group, value) {
+  if (group == null || value == null) return;
+  const v = String(value);
+  document.querySelectorAll(`[data-choice-group="${group}"]`).forEach((btn) => {
+    const match = btn.getAttribute("data-choice-value") === v;
+    btn.classList.toggle("selected", match);
+    btn.setAttribute("aria-pressed", match ? "true" : "false");
+  });
+}
+
+function clearChoice(group) {
+  if (group == null) return;
+  document.querySelectorAll(`[data-choice-group="${group}"]`).forEach((btn) => {
+    btn.classList.remove("selected");
+    btn.setAttribute("aria-pressed", "false");
+  });
+}
+
+function setChoiceIfPreset(group, value) {
+  const v = String(value);
+  const preset = document.querySelector(
+    `[data-choice-group="${group}"][data-choice-value="${v}"]`
+  );
+  if (preset) {
+    setChoice(group, v);
+  } else {
+    clearChoice(group);
+  }
 }
 
 function setPianoArmed(on) {
+  pianoArmed = on;
   const chip = $("#pianoChip");
   chip.textContent = on ? "armed" : "disarmed";
   chip.classList.toggle("on", on);
+  setChoice("piano", on ? "on" : "off");
+  updatePianoKbStatus();
+}
+
+function updatePianoKbStatus() {
+  const el = $("#pianoKbStatus");
+  if (!el) return;
+  if (pianoInputMode !== "keyboard") return;
+  if (!pianoArmed) {
+    el.textContent = "Keyboard idle — press Piano on first.";
+  } else {
+    el.textContent = "Keyboard active — play with A–K (W/E/T/Y/U = sharps).";
+  }
+}
+
+function setPianoInputMode(mode) {
+  pianoInputMode = mode;
+  const kbPanel = $("#pianoKeyboardPanel");
+  const screenPanel = $("#pianoScreenPanel");
+  const tabKb = $("#pianoTabKeyboard");
+  const tabScreen = $("#pianoTabScreen");
+  const isKb = mode === "keyboard";
+  kbPanel.classList.toggle("hidden", !isKb);
+  screenPanel.classList.toggle("hidden", isKb);
+  tabKb.classList.toggle("active", isKb);
+  tabScreen.classList.toggle("active", !isKb);
+  tabKb.setAttribute("aria-selected", isKb ? "true" : "false");
+  tabScreen.setAttribute("aria-selected", !isKb ? "true" : "false");
+  updatePianoKbStatus();
+}
+
+function isTypingTarget(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+}
+
+async function pianoNoteOn(freq) {
+  await api("/api/piano/note-on", { method: "POST", body: { freq } });
+}
+
+async function pianoNoteOff() {
+  await api("/api/piano/note-off", { method: "POST" });
+}
+
+function highlightKbKey(key, down) {
+  const el = document.querySelector(`.kb-key[data-key="${key}"]`);
+  if (el) el.classList.toggle("down", down);
+}
+
+async function handlePianoKeyDown(key) {
+  const freq = pianoKeysMap[key];
+  if (!freq || pianoKeysDown.has(key)) return;
+  pianoKeysDown.add(key);
+  highlightKbKey(key, true);
+  try {
+    await pianoNoteOn(freq);
+  } catch (e) {
+    logLine(`[ui] ${e.message}`);
+  }
+}
+
+async function handlePianoKeyUp(key) {
+  if (!pianoKeysDown.has(key)) return;
+  pianoKeysDown.delete(key);
+  highlightKbKey(key, false);
+  try {
+    await pianoNoteOff();
+  } catch (e) {
+    logLine(`[ui] ${e.message}`);
+  }
+}
+
+function releaseAllPianoKeys() {
+  const held = [...pianoKeysDown];
+  pianoKeysDown.clear();
+  held.forEach((k) => highlightKbKey(k, false));
+  if (held.length) {
+    pianoNoteOff().catch(() => {});
+  }
+}
+
+function onWindowKeyDown(ev) {
+  if (pianoInputMode !== "keyboard" || !pianoArmed) return;
+  if (isTypingTarget(ev.target)) return;
+  if (ev.repeat) return;
+  const key = ev.key.toLowerCase();
+  if (!pianoKeysMap[key]) return;
+  ev.preventDefault();
+  handlePianoKeyDown(key);
+}
+
+function onWindowKeyUp(ev) {
+  if (pianoInputMode !== "keyboard") return;
+  const key = ev.key.toLowerCase();
+  if (!pianoKeysMap[key]) return;
+  if (isTypingTarget(ev.target)) return;
+  ev.preventDefault();
+  handlePianoKeyUp(key);
+}
+
+function onWindowBlur() {
+  releaseAllPianoKeys();
 }
 
 /** mode: "day" | "night" | "unknown" — themes the whole page. */
@@ -78,7 +220,6 @@ function setDayNight(mode) {
     document.body.dataset.mode = "night";
   } else {
     pill.textContent = "Mode: —";
-    // Keep the last known theme; default (night palette) applies if none set.
   }
 }
 
@@ -132,8 +273,42 @@ function applyHealthLine(line) {
   }
 }
 
+function renderLcdPreview(rows) {
+  const root = $("#lcdPreview");
+  if (!root) return;
+  root.innerHTML = rows
+    .map((row) => `<div class="lcd-row">${escapeHtml(row)}</div>`)
+    .join("");
+}
+
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function handleShotLine(line) {
+  if (line === "[SHOT]") {
+    shotCapture = [];
+    return;
+  }
+  if (line === "[/SHOT]") {
+    if (shotCapture?.length) renderLcdPreview(shotCapture);
+    shotCapture = null;
+    return;
+  }
+  if (!shotCapture) return;
+  const m = line.match(/^\|(.+)\|$/);
+  if (m) shotCapture.push(m[1]);
+}
+
 async function requestHealth() {
   await api("/api/phone/health", { method: "POST" });
+}
+
+async function requestShot() {
+  await api("/api/phone/shot", { method: "POST" });
 }
 
 async function refreshSmsHistory() {
@@ -177,26 +352,40 @@ async function refreshStatus() {
   if (!s.connected && s.ports?.length && !$("#portInput").value) {
     $("#portInput").value = s.ports[0];
   }
-  buildPiano();
+  buildPianoScreen();
+  buildKbLayout();
   return s;
 }
 
-function buildPiano() {
+function buildKbLayout() {
+  const root = $("#kbLayout");
+  if (!root || root.dataset.built === "1") return;
+  PIANO_KEY_ORDER.forEach((k) => {
+    const freq = pianoKeysMap[k];
+    if (!freq) return;
+    const el = document.createElement("div");
+    el.className = "kb-key" + (PIANO_BLACK_KEYS.has(k) ? " black" : "");
+    el.dataset.key = k;
+    el.innerHTML = `<span class="kb-letter">${k.toUpperCase()}</span><span class="kb-freq">${freq}</span>`;
+    root.appendChild(el);
+  });
+  root.dataset.built = "1";
+}
+
+function buildPianoScreen() {
   const root = $("#pianoKeys");
   if (root.dataset.built === "1") return;
-  const order = ["a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j", "k"];
-  const blacks = new Set(["w", "e", "t", "y", "u"]);
-  order.forEach((k) => {
+  PIANO_KEY_ORDER.forEach((k) => {
     const freq = pianoKeysMap[k];
     if (!freq) return;
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "key" + (blacks.has(k) ? " black" : "");
+    btn.className = "key" + (PIANO_BLACK_KEYS.has(k) ? " black" : "");
     btn.innerHTML = `<span>${k.toUpperCase()}</span><span>${freq}</span>`;
     const down = async () => {
       btn.classList.add("down");
       try {
-        await api("/api/piano/note-on", { method: "POST", body: { freq } });
+        await pianoNoteOn(freq);
       } catch (e) {
         logLine(`[ui] ${e.message}`);
       }
@@ -204,7 +393,7 @@ function buildPiano() {
     const up = async () => {
       btn.classList.remove("down");
       try {
-        await api("/api/piano/note-off", { method: "POST" });
+        await pianoNoteOff();
       } catch (e) {
         logLine(`[ui] ${e.message}`);
       }
@@ -236,11 +425,13 @@ function connectEvents() {
     const line = ev.data || "";
     logLine(line);
     applyHealthLine(line);
+    handleShotLine(line);
     if (line.includes("[piano] ARMED") || line.includes("[PIANO] enter")) {
       setPianoArmed(true);
     }
     if (line.includes("[piano] DISARMED") || line.includes("[PIANO] exit")) {
       setPianoArmed(false);
+      releaseAllPianoKeys();
     }
     if (line.includes("[hub] connected")) {
       refreshStatus().catch(() => {});
@@ -248,6 +439,7 @@ function connectEvents() {
     if (line.includes("[hub] disconnected")) {
       setConnected(false, "");
       setPianoArmed(false);
+      releaseAllPianoKeys();
       setDayNight("unknown");
       setHealth({});
     }
@@ -290,6 +482,16 @@ async function translateFile(uploadToo) {
 
 document.addEventListener("DOMContentLoaded", async () => {
   connectEvents();
+  window.addEventListener("keydown", onWindowKeyDown);
+  window.addEventListener("keyup", onWindowKeyUp);
+  window.addEventListener("blur", onWindowBlur);
+
+  setPianoInputMode("keyboard");
+  setChoice("piano", "off");
+  setChoice("connection", "connect");
+
+  $("#pianoTabKeyboard").onclick = () => setPianoInputMode("keyboard");
+  $("#pianoTabScreen").onclick = () => setPianoInputMode("screen");
 
   $("#refreshPorts").onclick = () => refreshStatus().catch((e) => logLine(`[ui] ${e.message}`));
 
@@ -330,14 +532,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  $("#btnShot").onclick = () =>
+    withCancel(() => requestShot()).catch((e) => logLine(`[ui] ${e.message}`));
+
   $("#pianoOn").onclick = () =>
-    withCancel(() => api("/api/piano/on", { method: "POST" })).catch((e) =>
-      logLine(`[ui] ${e.message}`)
-    );
+    withCancel(() => api("/api/piano/on", { method: "POST" }))
+      .then(() => setChoice("piano", "on"))
+      .catch((e) => logLine(`[ui] ${e.message}`));
   $("#pianoOff").onclick = () =>
-    withCancel(() => api("/api/piano/off", { method: "POST" })).catch((e) =>
-      logLine(`[ui] ${e.message}`)
-    );
+    withCancel(() => api("/api/piano/off", { method: "POST" }))
+      .then(() => setChoice("piano", "off"))
+      .catch((e) => logLine(`[ui] ${e.message}`));
 
   $("#btnTranslate").onclick = async () => {
     try {
@@ -350,7 +555,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   $("#btnUploadSong").onclick = async () => {
     try {
-      // Cancel any previous upload, then start this one (exclusive on server).
       await api("/api/cancel", { method: "POST" });
       if ($("#songFile").files?.[0]) {
         await translateFile(true);
@@ -398,6 +602,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           $("#volChip").textContent = `${value}%`;
         }
         await sendSetting(name, value);
+        setChoice(name, value);
       } catch (e) {
         logLine(`[ui] ${e.message}`);
       }
@@ -410,7 +615,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   $("#btnVolApply").onclick = async () => {
     try {
-      await sendSetting("volume", $("#volRange").value);
+      const v = $("#volRange").value;
+      await sendSetting("volume", v);
+      setChoiceIfPreset("volume", v);
     } catch (e) {
       logLine(`[ui] ${e.message}`);
     }
@@ -421,6 +628,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const v = Math.max(0, Math.min(4095, parseInt($("#ldrValue").value, 10) || 0));
       $("#ldrValue").value = String(v);
       await sendSetting("ldr", v);
+      setChoiceIfPreset("ldr", String(v));
     } catch (e) {
       logLine(`[ui] ${e.message}`);
     }

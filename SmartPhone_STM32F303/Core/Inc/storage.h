@@ -143,9 +143,13 @@ typedef struct {
  *  reserve-now/populate-later policy as StorageSettings' own Phase 7
  *  upgrade (master plan section 9.8 note 3), STORAGE_VERSION unchanged. */
 typedef struct {
-  uint16_t score;       /* best score ever recorded */
-  uint16_t survival_s;  /* survival time (seconds) of that same best run */
-  uint8_t  reserved[16u - 4u]; /* pads to STORAGE_HIGHSCORES_RESERVED_BYTES */
+  uint16_t score;                 /* best score ever recorded */
+  uint16_t survival_s;            /* survival time (seconds) of that same best run */
+  /* Innovation I5: carved from former reserved[12] — no STORAGE_VERSION bump. */
+  uint16_t best_survival_total_s; /* unwrapped best survival across runs */
+  uint16_t best_kills;
+  uint8_t  achievements;          /* bit0=3min survivor, bit1=10 kills */
+  uint8_t  pad[7];
 } StorageHighscore;
 
 /** Phase 9 (plan section 5.5 bonus protocol: "`/songup-{name}-{count}` then
@@ -212,6 +216,11 @@ const StorageHighscore *Storage_GetHighscore(void);
  *  app_pvz.c, uses this to decide whether to Storage_RequestSave() and show
  *  a "New high score!" line), 0 otherwise. */
 uint8_t Storage_SetHighscoreIfBetter(uint16_t score, uint16_t survival_s);
+
+/** Innovation I5: updates best_survival_total_s / best_kills and ORs new
+ *  achievement bits (bit0 if survival_total_s>=180, bit1 if kills>=10).
+ *  Returns the bitmask of bits newly unlocked this call (0 = none). */
+uint8_t Storage_RecordAchievements(uint16_t survival_total_s, uint16_t kills);
 
 /** Number of populated song slots, 0..STORAGE_MAX_SONGS. Always contiguous
  *  from slot 0 (Storage_UploadSong()'s round-robin cursor always fills in

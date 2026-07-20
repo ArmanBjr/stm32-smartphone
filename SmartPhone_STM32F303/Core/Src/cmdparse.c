@@ -11,6 +11,7 @@
 #include "buzzer.h"
 #include "analog.h"
 #include "health.h"
+#include "ui.h"
 #include "app_config.h"
 #include "events.h"
 #include "serial.h"
@@ -46,6 +47,7 @@ static SongupSession s_songup;
 
 static void reply_err(const char *line)
 {
+  Buzzer_PlaySFX(BUZZER_SFX_ERROR);
   LOG("ERR unknown/invalid: %s", line);
 }
 
@@ -336,6 +338,12 @@ void Cmdparse_HandleLine(const char *line)
   /* Phase 10 / I9: uptime, stack HWM, event + UART TX drop counters. */
   if (strcmp(line, "/health") == 0) {
     Health_LogReport();
+    return;
+  }
+
+  /* Innovation I4: LCD framebuffer dump (same as keypad D). */
+  if (strcmp(line, "/shot") == 0) {
+    UI_DumpShot();
     return;
   }
 

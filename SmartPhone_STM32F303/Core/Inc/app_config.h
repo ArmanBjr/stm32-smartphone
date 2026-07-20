@@ -41,6 +41,12 @@
  * every APP_TASK_TICK_MS regardless of key traffic. */
 #define APP_TASK_TICK_MS     50u
 
+/* Innovation I2: longer event-queue wait while the lock screen is current
+ * (Phone_IsLocked()). Still bounded (not infinite block) so Phone_Tick()
+ * keeps running for the clock string / PIN flash; combined with __WFI()
+ * after an empty wait to reduce busy idle without STOP/STANDBY. */
+#define LOCK_IDLE_MS         300u
+
 /* Phase 3 (plan section 5.7: "blink_cursor ... toggled by TIM6-derived
  * 500 ms soft timer"). softtimer.c (plan section 3, kernel group) is not
  * yet built -- deferred per YAGNI until a second consumer needs it: for

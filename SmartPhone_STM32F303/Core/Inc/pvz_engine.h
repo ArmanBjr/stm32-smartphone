@@ -108,6 +108,8 @@ typedef struct {
   uint8_t  lives;
   uint16_t score;
   uint16_t survival_s;   /* wraps at 60, plan section 5.8's 7-seg SS field */
+  uint16_t survival_total_s; /* Innovation I5: unwrapped survival seconds */
+  uint16_t kills;            /* Innovation I5: zombies killed this run */
   uint8_t  game_over;
 
   uint8_t  inventory_day;

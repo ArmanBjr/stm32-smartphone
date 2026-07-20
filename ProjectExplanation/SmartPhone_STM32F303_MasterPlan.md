@@ -628,6 +628,10 @@ can run parallel to 5 if two people split (one owns drivers/sound, one owns UI/a
 
 **Recommended bundle for +20:** I1, I2, I3, I4, I5, I7, I11, I12 (all low effort) + I6 or I8.
 
+**Shipped (innovation bundle, restore `8bc5efe` → this work):** I4 → I3 → I2 → I12 → I5 → I8 → I10.
+I9 already landed with Phase 10 (`/health`). Not shipped: I1 Snake, I6 composer.
+See §9.14 for implementation notes.
+
 ---
 
 ## 8. RISK REGISTER (agents: read before coding)
@@ -2226,7 +2230,7 @@ mismatch → `storage_zero_init()`).
   ```
   Task handles registered once after `osThreadNew` in `main.c`.
 - **CGRAM audit** — screen→bank→slots matrix documented in `cgram.h` header
-  (Logo 2, Menu day/night 8, Music 3, PvZ 8; all ≤ 8).
+  (Logo 8 / 4 frames, Menu day/night 8, Music 8 = vol+EQ, PvZ 8; all ≤ 8).
 - **Log format** — module tags (`[PHONE]`, `[MUSIC]`, …) already in place; a few human
   cmdparse lines tagged `[CMD]`. Protocol `OK` / `ERR unknown/invalid:` / `SMS_SEND|`
   left unchanged for the host bridge.
@@ -2241,6 +2245,24 @@ Filename `Name_StudentNumber_S#_T#.zip` is filled in by the student at submit ti
 
 **Hardware check:** `/start` then `/health` → three HWM numbers + counters; normal use
 must not IWDG-reset; Menu LDR day/night icons still swap.
+
+### 9.14 Innovation bundle notes (I4, I3, I2, I12, I5, I8, I10)
+
+Shipped in that order under `SmartPhone_STM32F303/Core/` (no `.ioc` regen, flash layout
+unchanged — `StorageHighscore` still 16 B via reserved carve).
+
+| ID | What landed |
+|----|-------------|
+| **I4** | `UI_CopyFrame` / `UI_DumpShot` — `KEY_EV_SHORTCUT_D` and `/shot` dump `[SHOT]`…`[/SHOT]` (CGRAM → `#`) |
+| **I3** | `Buzzer_PlaySFX`: key click (skip Piano), wrong-PIN + `reply_err` ERROR, boot CLICK, app-enter CLICK (skip Music/Piano/PvZ) |
+| **I2** | `Phone_IsLocked`; `LOCK_IDLE_MS` (300) queue wait; lock dirty-render; `__WFI()` after empty wait (no STOP) |
+| **I12** | `BANK_LOGO` 8 glyphs = 4 frames; `Phone_Boot` swaps indices over `BOOT_LOGO_MS` |
+| **I5** | `PvzState.survival_total_s` / `kills`; highscore `best_*` + `achievements` bits; game-over toast |
+| **I8** | Music CGRAM slots 3–7 bar glyphs; row-2 EQ while playing |
+| **I10** | `t9_dict.c` (~80 words); Note EDIT row 2 `>suggest`; hold-6 accepts |
+
+**Hardware checks:** `/shot` + D key; clicks/chirps; lock idle no IWDG reset; boot animation;
+PvZ unlock flags; Music bars; Note hold-6 accept.
 
 ---
 

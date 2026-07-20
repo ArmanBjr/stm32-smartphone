@@ -345,6 +345,26 @@ input:focus {
   background: transparent;
 }
 
+/** Active choice in a toggle / option group (piano, settings, connection). */
+.btn.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-dim) 55%, var(--btn-bg));
+  color: var(--accent-contrast);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.btn.ghost.selected {
+  background: color-mix(in srgb, var(--accent-dim) 45%, transparent);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn.selected:disabled {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .chip {
   font-size: 0.7rem;
   padding: 0.25rem 0.55rem;
@@ -357,6 +377,139 @@ input:focus {
 .chip.on {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.lcd-preview {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: #1a2420;
+  border: 2px solid var(--panel-edge);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  min-height: 5.5rem;
+  color: #b8e6c8;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.35);
+}
+
+body[data-mode="day"] .lcd-preview {
+  background: #2a3528;
+  color: #dffaea;
+}
+
+.lcd-row {
+  white-space: pre;
+  overflow: hidden;
+}
+
+.lcd-row.muted {
+  color: var(--muted);
+}
+
+.innov-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.innov-list li {
+  margin-bottom: 0.35rem;
+}
+
+.innov-list strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.piano-mode-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.85rem 0 0.65rem;
+}
+
+.btn.tab {
+  background: transparent;
+  border-color: var(--panel-edge);
+  color: var(--muted);
+}
+
+.btn.tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-dim) 40%, transparent);
+}
+
+.piano-panel.hidden {
+  display: none;
+}
+
+.piano-hint {
+  margin-bottom: 0.65rem;
+}
+
+.piano-hint kbd,
+.innov-list kbd {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--panel-edge);
+  background: var(--input-bg);
+  font-size: 0.75rem;
+  font-family: var(--mono);
+}
+
+.piano-status {
+  margin: 0.65rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.kb-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.kb-key {
+  min-width: 2.4rem;
+  height: 3.6rem;
+  border: 1px solid var(--panel-edge);
+  background: var(--key-bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 0.35rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.kb-key.black {
+  background: var(--key-black-bg);
+  color: var(--key-black-text);
+  height: 2.8rem;
+  min-width: 2rem;
+}
+
+.kb-key.down {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.kb-letter {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.kb-freq {
+  opacity: 0.65;
+  font-size: 0.6rem;
 }
 
 .piano {

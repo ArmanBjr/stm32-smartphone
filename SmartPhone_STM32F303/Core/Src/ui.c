@@ -7,7 +7,9 @@
 #include "ui.h"
 #include "LiquidCrystal.h"
 #include "cmsis_os.h"
+#include "serial.h"
 #include <string.h>
+#include <stdio.h>
 
 static uint8_t s_back[UI_ROWS][UI_COLS];
 static uint8_t s_shown[UI_ROWS][UI_COLS];
@@ -158,4 +160,38 @@ void UI_RenderDirty(void (*on_row_done)(void))
     }
   }
   osMutexRelease(s_mutex);
+}
+
+void UI_CopyFrame(uint8_t dst[UI_ROWS][UI_COLS])
+{
+  if (dst == NULL) {
+    return;
+  }
+  ui_lock();
+  memcpy(dst, s_back, sizeof(s_back));
+  ui_unlock();
+}
+
+void UI_DumpShot(void)
+{
+  uint8_t frame[UI_ROWS][UI_COLS];
+  char line[UI_COLS + 1u];
+  uint8_t r, c;
+
+  UI_CopyFrame(frame);
+  LOG("[SHOT]");
+  for (r = 0u; r < UI_ROWS; r++) {
+    for (c = 0u; c < UI_COLS; c++) {
+      uint8_t ch = frame[r][c];
+      if (ch < 8u) {
+        ch = (uint8_t)'#'; /* CGRAM glyphs */
+      } else if (ch < 0x20u || ch > 0x7Eu) {
+        ch = (uint8_t)'.';
+      }
+      line[c] = (char)ch;
+    }
+    line[UI_COLS] = '\0';
+    LOG("|%s|", line);
+  }
+  LOG("[/SHOT]");
 }

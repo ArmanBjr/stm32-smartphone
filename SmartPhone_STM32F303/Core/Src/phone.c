@@ -76,6 +76,11 @@ void Phone_ApplySeg7Default(void)
   Seg7_SetMode(phone_default_seg7_mode());
 }
 
+uint8_t Phone_IsLocked(void)
+{
+  return (s_current == &AppLock) ? 1u : 0u;
+}
+
 void Phone_SwitchApp(const App *app)
 {
   if (app == NULL || app == s_current) {
@@ -160,6 +165,11 @@ void Phone_SwitchApp(const App *app)
   }
   s_current = app;
   LOG("[PHONE] switch app");
+  /* Innovation I3: short enter chirp — skip apps that immediately own the
+   * buzzer channel (Music / Piano / PvZ). */
+  if (app != &AppMusic && app != &AppPiano && app != &AppPvz) {
+    Buzzer_PlaySFX(BUZZER_SFX_CLICK);
+  }
   /* Round-4 boot-loop chase instrumentation (bracketing on_enter()/render()
    * with "[PHONE] on_enter done"/"[PHONE] render done") removed in round 5:
    * that bracketing is what proved on_enter() completed but render() never
@@ -192,17 +202,24 @@ void Phone_Boot(void)
   }
   s_booted = 1u;
 
-  /* Animated logo (plan section 5.9: "animated cactus/custom logo + boot
-   * jingle"). One-time boot delay in app_task, not a polling loop, so this
-   * does not violate rule 0.1. */
+  /* Animated logo (plan section 5.9 + Innovation I12): 4 CGRAM frames,
+   * total BOOT_LOGO_MS. One-time boot delay in app_task, not a polling
+   * loop, so this does not violate rule 0.1. */
   Cgram_RequestBank(CGRAM_BANK_LOGO);
   UI_Clear();
-  UI_PutChar(1, 8, (uint8_t)CGRAM_LOGO_L);
-  UI_PutChar(1, 9, (uint8_t)CGRAM_LOGO_R);
   UI_Print(2, 5, "SmartPhone");
   LOG("[BOOT] Phase 7: /start -> boot sequence");
+  /* Innovation I3: boot chirp (plan §5.9 "boot jingle"). */
+  Buzzer_PlaySFX(BUZZER_SFX_CLICK);
 
-  osDelay(BOOT_LOGO_MS);
+  {
+    const uint32_t frame_ms = (uint32_t)BOOT_LOGO_MS / (uint32_t)CGRAM_LOGO_FRAMES;
+    for (uint8_t f = 0u; f < (uint8_t)CGRAM_LOGO_FRAMES; f++) {
+      UI_PutChar(1, 8, (uint8_t)(2u * f));
+      UI_PutChar(1, 9, (uint8_t)(2u * f + 1u));
+      osDelay(frame_ms);
+    }
+  }
 
   s_last_activity_tick = HAL_GetTick();
   Phone_SwitchApp(&AppMenu);
@@ -306,6 +323,10 @@ void Phone_Dispatch(const Event *ev)
     s_last_activity_tick = HAL_GetTick(); /* any key resets the auto-lock
                                             * idle timer (plan section 5.9
                                             * "innovation") */
+    /* Innovation I3: key click — skip while Piano owns the PWM channel. */
+    if (s_current != &AppPiano) {
+      Buzzer_PlaySFX(BUZZER_SFX_CLICK);
+    }
     if (kt == KEY_EV_BACK && s_current != &AppMenu && s_current != &AppLock) {
       /* Nested screens (PvZ Settings, SMS compose, Note editor, ...)
        * consume BACK via App.on_back() and stay in the app. Root screen
@@ -328,15 +349,18 @@ void Phone_Dispatch(const Event *ev)
       Phone_Lock();
       return;
     }
+    if (kt == KEY_EV_SHORTCUT_D) {
+      /* Innovation I4 / I11: D = LCD screenshot to UART. */
+      UI_DumpShot();
+      return;
+    }
     if (kt == KEY_EV_SHORTCUT_A || kt == KEY_EV_SHORTCUT_B) {
       /* plan section 1.2: "A = Vol+, B = Vol-". Handled globally (like
        * BACK above) so Vol+/- works from anywhere in the shell, not just
        * inside a music app -- matches I11's (plan section 8 risk
        * register) own reasoning that shortcut wiring is deferred only
        * "until those subsystems ... exist": the buzzer/volume subsystem
-       * exists as of Phase 4, so A/B become live now, while C/D
-       * (QuickLock/Screenshot) stay deferred since their subsystems
-       * (lock screen, UART screenshot) still don't exist.
+       * exists as of Phase 4, so A/B/C/D are live (screenshot = I4).
        * Deliberately NOT `return`ing here: the event still falls through
        * to on_event()/render() below so the current app's own handling
        * (if any) still runs. */
