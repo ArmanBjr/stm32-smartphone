@@ -882,7 +882,7 @@ for features whose prerequisite subsystem is a later phase. No boot jingle (buzz
 subsystem is Phase 4). Revisit this note once `cmdparse.c` lands.
 
 **Team data (confirmed by the user, no longer placeholder):** `app_info.c` shows
-Amin Hasanzadeh (4022262091) and Arman Bijari (4021262131).
+Amin Hasanzadeh and Arman Bijari.
 
 **Build:** not attempted in-session per explicit user instruction ("i will build the project
 myself do not build it"). Verified by manual code review only: include dependencies, `App`

@@ -1,15 +1,19 @@
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
+desktop.ini
 *.swp
 *~
 .vscode/
 .idea/
 *.code-workspace
+.cursor/
+.claude/
 
 # --- Eclipse / CubeIDE workspace junk ---
 .metadata/
 RemoteSystemsTempFiles/
+*.launch
 
 # --- Build outputs (rebuild in CubeIDE) ---
 SmartPhone_STM32F303/Debug/
@@ -38,6 +42,11 @@ venv/
 host_tools/.env
 .pytest_cache/
 .mypy_cache/
+
+# --- Course handouts / submission bundles (local only) ---
+*.zip
+*.pdf
+ProjectExplanation/*.pdf
 
 # --- Misc ---
 *.log

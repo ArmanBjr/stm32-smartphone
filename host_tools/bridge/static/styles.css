@@ -407,6 +407,65 @@ body[data-mode="day"] .lcd-preview {
   color: var(--muted);
 }
 
+/* Physical keypad reference (display-only helper) */
+.keypad-panel .hint {
+  margin-bottom: 0.75rem;
+}
+
+.keypad-schema {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  max-width: 22rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.kp-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.35rem 0.25rem;
+  border: 1px solid var(--panel-edge);
+  background: var(--key-bg);
+  border-radius: 2px;
+  text-align: center;
+}
+
+.kp-key.kp-fn {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--panel-edge));
+  background: color-mix(in srgb, var(--accent-dim) 35%, var(--key-bg));
+}
+
+.kp-main {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.kp-sub {
+  margin-top: 0.15rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.kp-wide-label .kp-main {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.keypad-footnote {
+  margin: 0.65rem 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .innov-list {
   margin: 0;
   padding-left: 1.15rem;
@@ -646,4 +705,5 @@ input[type="number"] {
   .row { flex-direction: column; align-items: stretch; }
   .section-head { flex-direction: column; }
   .health-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .keypad-schema { max-width: 100%; }
 }

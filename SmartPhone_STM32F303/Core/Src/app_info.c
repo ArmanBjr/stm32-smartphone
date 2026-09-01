@@ -22,9 +22,7 @@
 #include "keypad.h"
 
 #define TEAM_MEMBER_1_NAME "Amin Hasanzadeh"
-#define TEAM_MEMBER_1_ID   "4022262091"
 #define TEAM_MEMBER_2_NAME "Arman Bijari"
-#define TEAM_MEMBER_2_ID   "4021262131"
 
 static void info_on_enter(void)
 {
@@ -45,9 +43,9 @@ static void info_render(void)
 {
   UI_BeginFrame();
   UI_Print(0, 0, TEAM_MEMBER_1_NAME);
-  UI_Print(1, 0, TEAM_MEMBER_1_ID);
-  UI_Print(2, 0, TEAM_MEMBER_2_NAME);
-  UI_Print(3, 0, TEAM_MEMBER_2_ID);
+  UI_Print(1, 0, TEAM_MEMBER_2_NAME);
+  UI_Print(2, 0, "FUM Microprocessor");
+  UI_Print(3, 0, "Lab Project");
   UI_EndFrame();
 }
 

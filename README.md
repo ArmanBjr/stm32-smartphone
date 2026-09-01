@@ -2,7 +2,10 @@
 
 Embedded “smartphone” on an **STM32F303 Discovery** board — FreeRTOS firmware with LCD/keypad apps, music & live piano, a Plants-vs-Zombies mini-game, SMS via UART, plus a Python **web host console** for control, song upload, and day/night theming.
 
-> Course project: Microprocessor Lab · board: STM32F3DISCOVERY (STM32F303VCT6)
+**Course:** Microprocessor Lab · Ferdowsi University of Mashhad (FUM)  
+**Board:** STM32F3DISCOVERY (STM32F303VCT6)  
+**Authors:** Amin Hasanzadeh · **Arman Bijari** — [ArmanBjr](https://github.com/ArmanBjr)  
+**Repository:** [github.com/ArmanBjr/stm32-smartphone](https://github.com/ArmanBjr/stm32-smartphone)
 
 ---
 
@@ -29,7 +32,7 @@ SmartPhone_STM32F303/     STM32CubeIDE firmware (open .ioc / .project)
 host_tools/               PC companion (web bridge)
   sms_bridge.py           Launcher → http://127.0.0.1:8765
   bridge/                 SerialHub, FastAPI, translator, static UI
-ProjectExplanation/       Master plan (source of truth) + course PDF
+ProjectExplanation/       Master plan (architecture + protocol docs)
 PinAssigment/             Pin map notes
 Songs/, tools/            Melody sources + conversion helper
 ```
@@ -72,7 +75,7 @@ Name_StudentNumber_S#_T#.zip
   SmartPhone_STM32F303.ioc
 ```
 
-Exclude: `Debug/`, `Release/`, `.metadata/`, `host_tools/.env`, Python `venv/`. Rename the zip with your real student identifiers when submitting.
+Exclude: `Debug/`, `Release/`, `.metadata/`, `host_tools/.env`, Python `venv/`, course PDFs, and submission `.zip` files.
 
 ---
 
@@ -134,6 +137,8 @@ Phases **0–11** are implemented: base phone apps, PvZ, PC bonuses (time / pian
 
 ---
 
-## License
+## Authors & License
 
-University lab coursework. Use / fork for learning; check your course rules before redistributing graded materials (PDF, etc.).
+**Amin Hasanzadeh** · **Arman Bijari** — [ArmanBjr](https://github.com/ArmanBjr)
+
+Released under the [MIT License](LICENSE).
